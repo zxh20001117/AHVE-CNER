@@ -1,0 +1,4 @@
+[
+  {"sentence": "今将百万之众﹒遇城而不能下﹒何谓邪﹒遂围之数十重﹒", "ner": [{"index": [0], "type": "ADR"}, {"index": [2, 3, 4], "type": "ADR"}, {"index": [6, 7, 8, 9, 10], "type": "ADR"}, {"index": [15], "type": "ADR"}, {"index": [17], "type": "ADR"}, {"index": [19, 20, 21, 22, 23], "type": "ADR"}]},
+  {"sentence": ["Brain", "fog", "and", "decreased", "cognitive", "skills", "."], "ner": [{"index": [0, 1], "type": "ADR"}, {"index": [3, 4, 5], "type": "ADR"}]}
+]

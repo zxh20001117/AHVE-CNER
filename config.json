@@ -1,0 +1,55 @@
+{
+  "dataset": "liezhuan diji",
+  "root_path": "D:/多模态任务/MMW2NER/",
+  "batch_size": 4,
+  "epochs": 20,
+  "predict_path": "output.json",
+
+  "warm_factor": 0.1,
+  "bert_learning_rate": 1e-5,
+
+  "use_bert_last_4_layers": true,
+  "lstm_hid_size": 1024,
+  "conv_hid_size": 160,
+  "bert_hid_size": 1024,
+  "dist_emb_size": 20,
+  "type_emb_size": 20,
+  "dilation": [1, 2, 3],
+  "biaffine_size": 1024,
+  "ffnn_hid_size": 240,
+
+  "weight_decay": 0,
+  "learning_rate": 1e-3,
+  "clip_grad_norm": 5.0,
+
+  "layer_preprocess_sequence": "an",
+  "layer_postprocess_sequence": "an",
+  "ff_size": 256,
+
+  "dropout":{
+    "out_dropout": 0.3,
+    "conv_dropout": 0.4,
+    "emb_dropout": 0.5,
+    "post": 0.3,
+    "attn": 0.0,
+    "ff": 0.15,
+    "ff_2": 0,
+    "ff_2": 0.15,
+    "gaz": 0,
+    "output":0.15
+  },
+  "vit": {
+    "num_heads": 4,
+    "num_layers": 6,
+    "patch_size": 2,
+    "patch_dim": 64,
+    "max_num_token": 256,
+    "font_size": 32
+  },
+
+  "radical": {
+    "num_heads": 4,
+    "num_layers": 3
+  }
+
+}
