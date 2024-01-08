@@ -8,19 +8,21 @@ from transformers import AutoTokenizer
 
 from Modules.MyModel.RadicalEmbedding import RadicalEmbedding
 from Modules.MyModel.RadicalEncoderLayer import RadicalEncoderLayer
+from Modules.PositionalEncoding import PositionalEncoding
 from Modules.ViT.Char2Image import Char2Image
 from Modules.ViT.VisionTransformer import VisionTransformer
 from Utils.paths import root_path, bert_path, ttf_paths
 
 
 class RadicalEncoder(nn.Module):
-    def __init__(self, patch_size, patch_dim, radical_dim, dropout, layer_preprocess_sequence,
+    def __init__(self, patch_size, patch_dim, radical_dim, feature_dim, dropout, layer_preprocess_sequence,
                  layer_postprocess_sequence, ff_size, vit_max_num_token, vit_num_heads, vit_num_layers,
                  radical_num_heads, radical_num_layers, tokenizer):
         super().__init__()
         self.patch_size = patch_size
         self.patch_dim = patch_dim
         self.radical_dim = radical_dim
+        self.feature_dim = feature_dim
 
         self.radical_encoder_layer = RadicalEncoderLayer(patch_size=patch_size,
                                                          patch_dim=patch_dim,
@@ -31,14 +33,17 @@ class RadicalEncoder(nn.Module):
         self.vit = VisionTransformer(self.patch_size, self.patch_dim, max_num_token=vit_max_num_token,
                                      num_heads=vit_num_heads, num_layers=vit_num_layers)
         self.radical_embedder = RadicalEmbedding(tokenizer=tokenizer)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.radical_dim, nhead=radical_num_heads)
+        self.radical2feature = nn.Linear(self.radical_dim, self.feature_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.feature_dim, nhead=radical_num_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=radical_num_layers)
+        self.radical_positional_embedding = nn.Parameter(torch.Tensor(self.radical_dim), requires_grad=True)
+        self.positional_encoding = PositionalEncoding(self.feature_dim, 0)
 
     def forward(self, token, image):
         """
         :param token: [batch, seq_len]
         :param image: [batch, seq_len, channel, height, width]
-        :return: lattice_emb: [batch, seq_len, emb_dim]
+        :return: radical_emb: [batch, seq_len, emb_dim]
         """
         batch, seq_len, channel, height, width = image.shape
         image = image.view(batch * seq_len, channel, height, width)
@@ -50,8 +55,11 @@ class RadicalEncoder(nn.Module):
         radical_emb = radical_emb.view(batch * seq_len, radical_num, radical_dim)
         mask = mask.view(batch * seq_len)
         # [batch*seq_len, patch_dim]
+        radical_emb = radical_emb + self.radical_positional_embedding.unsqueeze(0).unsqueeze(0)
         radical_emb = self.radical_encoder_layer(patch_emb, radical_emb, mask)
         radical_emb = radical_emb.view(batch, seq_len, self.radical_dim)
+        radical_emb = self.radical2feature(radical_emb)
+        radical_emb = self.positional_encoding(radical_emb)
         radical_emb = self.transformer_encoder(radical_emb)
 
         return radical_emb
@@ -101,6 +109,7 @@ if __name__ == "__main__":
     img_inputs = fill(test_images, img_mat)
 
     radical_encoder = RadicalEncoder(patch_size=patch_size, patch_dim=patch_dim, radical_dim=radical_dim,
+                                     feature_dim=1024,
                                      dropout=dropout, layer_preprocess_sequence=layer_preprocess_sequence,
                                      layer_postprocess_sequence=layer_postprocess_sequence, ff_size=ff_size,
                                      vit_max_num_token=vit_max_num_token, vit_num_heads=vit_num_heads,
