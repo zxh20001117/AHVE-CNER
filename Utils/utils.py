@@ -2,10 +2,14 @@ import logging
 import time
 from collections import defaultdict, deque
 
-from fastNLP import Vocabulary
+import numpy as np
+from fastNLP import Vocabulary, DataSet
+from pypinyin import pinyin, Style
+from pypinyin.contrib.tone_convert import to_initials, to_finals
+from pypinyin_dict.phrase_pinyin_data import cc_cedict
 from transformers import AutoTokenizer
 
-from Utils.paths import root_path, radical_vocab_path
+from Utils.paths import root_path, radical_vocab_path, pinyin_vocab_path
 
 
 class LabelVocab(object):
@@ -83,6 +87,33 @@ class RadicalVocab():
         if include_word_start_end:
             radical_vocab.add_word_lst(['[CLS]', '[SEP]'])
         return radical_vocab
+
+
+def pinyin_split(word):
+    pingyin = pinyin(word, style=Style.TONE3, heteronym=True, strict=False)[0][0]
+    initial = to_initials(pingyin, strict=False)
+    final = to_finals(pingyin)
+    initial = initial if initial != '' else '-'  # 有些字没有声母，比如“啊”， 或者 无法被分解为拼音
+    final = final if final != '' else '-'  # 无法被分解为拼音
+    yindiao = pingyin[-1] if pingyin[-1].isnumeric() else '-'
+    return [initial, final, yindiao]
+
+
+class PinyinVocab:
+    def __init__(self, tokenizer: AutoTokenizer):
+        cc_cedict.load()
+        self.char_tokenizer = tokenizer
+        self.pinyin_vocab_path = root_path + pinyin_vocab_path
+        self.vocab = self.load_pinyin_vocab()
+
+    def load_pinyin_vocab(self, min_freq: int = 1, include_word_start_end=False) -> Vocabulary:
+        vocab = Vocabulary(min_freq=min_freq)
+        vocab_dict = np.load(self.pinyin_vocab_path, allow_pickle=True).item()
+        vocab.from_dataset(DataSet(vocab_dict), field_name='yinjie')
+        vocab.add_word_lst(
+            ['-', self.char_tokenizer.pad_token, self.char_tokenizer.unk_token, self.char_tokenizer.cls_token,
+             self.char_tokenizer.sep_token])
+        return vocab
 
 
 def get_logger(dataset):

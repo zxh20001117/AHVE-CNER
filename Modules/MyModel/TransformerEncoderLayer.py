@@ -1,9 +1,6 @@
 from torch import nn
-
-
 from Modules.LayerProcess import LayerProcess
 from Modules.PositionWiseFeedForward import PositionWiseFeedForward
-
 from Modules.MyModel.MultiHeadAttention import MultiHeadAttention
 
 
