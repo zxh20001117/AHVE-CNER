@@ -8,9 +8,9 @@ from torch import nn
 class MultiHeadAttention(nn.Module):
     """
     attention 计算公式：
-        attention(Q, K, V) = softmax((Q1K^T) + Q2K'^T)/sqrt(d_k))V
-        其中 Q1 Q2 为 query 加上 可学习的位置编码参数
-        K为原始的key， K'为相对位置编码的key
+        attention(Q, K, V) = softmax(QK^T)/sqrt(d_k))V
+        其中 Q 为 query 加上 可学习的位置编码参数
+        K为原始的key
     """
     def __init__(self, hidden_size, num_heads,
                  scaled=True,
@@ -28,13 +28,9 @@ class MultiHeadAttention(nn.Module):
         self.w_q = nn.Linear(self.hidden_size, self.hidden_size)
         self.w_v = nn.Linear(self.hidden_size, self.hidden_size)
         self.w_r = nn.Linear(self.hidden_size, self.hidden_size)
-        self.u = nn.Parameter(torch.Tensor(self.num_heads, self.per_head_size))
+
 
         self.dropout = nn.Dropout(attn_dropout)
-
-        # self.randomAttention = nn.Parameter(torch.empty(1, self.num_heads, self.max_seq_len, self.max_seq_len), requires_grad=True)
-        #
-        # nn.init.kaiming_normal_(self.randomAttention, a=math.sqrt(5))
 
     def forward(self, query, key, value):
         """
@@ -61,12 +57,8 @@ class MultiHeadAttention(nn.Module):
 
         key = key.transpose(-1, -2)
 
-        # 1 * n_head * 1 * d_head
-        u_for_c = self.u.unsqueeze(0).unsqueeze(-2)
-        # batch * n_head * seq_len * d_head
-        query_and_u_for_c = query + u_for_c
         # batch * n_head * seq_len * seq_len
-        attn_score_raw = torch.matmul(query_and_u_for_c, key)
+        attn_score_raw = torch.matmul(query, key)
 
         if self.scaled:
             attn_score_raw_masked = attn_score_raw / math.sqrt(self.per_head_size)
