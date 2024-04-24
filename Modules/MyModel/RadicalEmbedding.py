@@ -6,11 +6,12 @@ from fastNLP.embeddings.utils import get_embeddings
 from transformers import AutoModel
 
 from Utils.utils import RadicalVocab
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class RadicalEmbedding(nn.Module):
-    def __init__(self, tokenizer: AutoModel, embed_size: int = 64, char_emb_size: int = 64, char_dropout: float = 0,
-                 dropout: float = 0,  activation='relu', requires_grad: bool = True,
+    def __init__(self, tokenizer: AutoModel, embed_size: int = 64, char_emb_size: int = 128, char_dropout: float = 0.2,
+                 dropout: float = 0.15,  activation='relu', requires_grad: bool = True,
                  include_word_start_end: bool = False):
         super().__init__()
 
@@ -43,19 +44,19 @@ class RadicalEmbedding(nn.Module):
 
         self.chars_to_radicals_embedding = torch.full((len(self.radical_vocab.char_tokenizer.vocab.items()),
                                                        max_radical_nums), fill_value=self.char_pad_index,
-                                                      dtype=torch.long)
+                                                      dtype=torch.long).to(DEVICE)
 
-        self.word_lengths = torch.zeros(len(self.radical_vocab.char_tokenizer.vocab.items())).long()
+        self.word_lengths = torch.zeros(len(self.radical_vocab.char_tokenizer.vocab.items())).long().to(DEVICE)
         for word, index in self.radical_vocab.char_tokenizer.vocab.items():
             # if index!=vocab.padding_idx:  # 如果是pad的话，直接就为pad_value了。修改为不区分pad, 这样所有的<pad>也是同一个embed
             word = self.radical_vocab.char2radical(word)
             if include_word_start_end:
                 word = ['<bow>'] + word + ['<eow>']
             self.chars_to_radicals_embedding[index, :len(word)] = \
-                torch.LongTensor([self.radical_vocab.radical_vocab.to_index(radical) for radical in word])
+                torch.LongTensor([self.radical_vocab.radical_vocab.to_index(radical) for radical in word]).to(DEVICE)
             self.word_lengths[index] = len(word)
         # self.char_embedding = nn.Embedding(len(self.char_vocab), char_emb_size)
-        self.char_embedding = get_embeddings((len(self.radical_vocab.radical_vocab), char_emb_size))
+        self.char_embedding = get_embeddings((len(self.radical_vocab.radical_vocab), char_emb_size)).to(DEVICE)
         self.char_embedding.weight.requires_grad = True
 
         self.embed_size = embed_size
@@ -72,7 +73,8 @@ class RadicalEmbedding(nn.Module):
         :param words: [batch_size, max_len]
         :return: [batch_size, max_len, radical_num, embed_size]
         """
-        words = self.drop_word(words)
+
+        # words = self.drop_word(words)
         chars = self.chars_to_radicals_embedding[words]  # batch_size x max_len x max_word_len
         masks = self.word_lengths[words]  # batch_size x max_len
 
@@ -80,9 +82,10 @@ class RadicalEmbedding(nn.Module):
         max_word_len = word_lengths.max()
         chars = chars[:, :, :max_word_len]
         chars = self.char_embedding(chars)  # batch_size x max_len x max_word_len x embed_size
+        chars = self.drop_word(chars)
         chars = self.fc1(chars)
-        chars = self.dropout(chars)
         chars = self.activation(chars)
+        chars = self.dropout(chars)
         chars = self.fc2(chars)
 
-        return self.dropout(chars), masks
+        return chars, masks

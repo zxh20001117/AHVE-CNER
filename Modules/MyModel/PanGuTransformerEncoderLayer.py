@@ -14,9 +14,11 @@ class PanGuTransformerEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, query, key, value):
-        query = self.dropout(self.AugMSA(query, key, value)) + query
+        # query = self.dropout(self.AugMSA(query, key, value)) + query
         query = self.layer_norm(query)
-        query = self.dropout(self.SIFA_MLP(query)) + query
+        query = self.dropout(self.AugMSA(query, key, value)) + value
+        # query = self.dropout(self.SIFA_MLP(query)) + query
+        query = self.dropout(self.SIFA_MLP(query)) + value
         query = self.layer_norm(query)
         return query
 
@@ -26,8 +28,8 @@ if __name__ == "__main__":
     seq_len = 10
     emb_size = 768
     AugMSA_nums = 8
-    query = torch.randn(batch_size, seq_len, emb_size)
-    key = torch.randn(batch_size, seq_len, emb_size)
-    encoder_layer = PanGuTransformerEncoderLayer(emb_size, AugMSA_nums)
+    query = torch.randn(batch_size, seq_len, emb_size).cuda()
+    key = torch.randn(batch_size, seq_len, emb_size).cuda()
+    encoder_layer = PanGuTransformerEncoderLayer(emb_size, AugMSA_nums).cuda()
     output = encoder_layer(query, key, key)
     print(output.shape)

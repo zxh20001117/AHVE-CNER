@@ -32,11 +32,11 @@ class RadicalEncoder(nn.Module):
                                                          ff_size=ff_size)
         self.vit = VisionTransformer(self.patch_size, self.patch_dim, max_num_token=vit_max_num_token,
                                      num_heads=vit_num_heads, num_layers=vit_num_layers)
-        self.radical_embedder = RadicalEmbedding(tokenizer=tokenizer)
+        self.radical_embedder = RadicalEmbedding(tokenizer=tokenizer, embed_size=self.radical_dim)
         self.radical2feature = nn.Linear(self.radical_dim, self.feature_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.feature_dim, nhead=radical_num_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=radical_num_layers)
-        self.radical_positional_embedding = nn.Parameter(torch.Tensor(self.radical_dim), requires_grad=True)
+        # self.radical_positional_embedding = nn.Parameter(torch.Tensor(self.radical_dim), requires_grad=True)
         self.positional_encoding = PositionalEncoding(self.feature_dim, 0)
 
     def forward(self, token, image):
@@ -48,15 +48,19 @@ class RadicalEncoder(nn.Module):
         batch, seq_len, channel, height, width = image.shape
         image = image.view(batch * seq_len, channel, height, width)
         patch_emb = self.vit(image)  # [batch*seq_len, patch_num, patch_dim]
+        assert not torch.isnan(patch_emb).any()
         radical_emb, mask = self.radical_embedder(token)  # [batch, seq_len, radical_num, radical_dim], [batch, seq_len]
+        assert not torch.isnan(radical_emb).any()
         batch, seq_len, radical_num, radical_dim = radical_emb.shape
 
         # [batch*seq_len, radical_num, radical_dim]
         radical_emb = radical_emb.view(batch * seq_len, radical_num, radical_dim)
+        assert not torch.isnan(radical_emb).any()
         mask = mask.view(batch * seq_len)
         # [batch*seq_len, patch_dim]
-        radical_emb = radical_emb + self.radical_positional_embedding.unsqueeze(0).unsqueeze(0)
+
         radical_emb = self.radical_encoder_layer(patch_emb, radical_emb, mask)
+        assert not torch.isnan(radical_emb).any()
         radical_emb = radical_emb.view(batch, seq_len, self.radical_dim)
         radical_emb = self.radical2feature(radical_emb)
         radical_emb = self.positional_encoding(radical_emb)

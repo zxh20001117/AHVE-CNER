@@ -29,7 +29,6 @@ class MultiHeadAttention(nn.Module):
         self.w_v = nn.Linear(self.hidden_size, self.hidden_size)
         self.w_r = nn.Linear(self.hidden_size, self.hidden_size)
 
-
         self.dropout = nn.Dropout(attn_dropout)
 
     def forward(self, query, key, value):
@@ -39,7 +38,6 @@ class MultiHeadAttention(nn.Module):
         :param value: 值 [batch, seq_len, hidden_size]
         :return:
         """
-
         query = self.w_q(query)
 
         value = self.w_v(value)
@@ -47,9 +45,9 @@ class MultiHeadAttention(nn.Module):
         batch = key.size(0)
 
         # batch * seq_len * n_head * d_head
-        key = torch.reshape(key, [batch, key.size(1), self.num_heads, self.per_head_size])
-        query = torch.reshape(query, [batch, query.size(1), self.num_heads, self.per_head_size])
-        value = torch.reshape(value, [batch, value.size(1), self.num_heads, self.per_head_size])
+        key = torch.reshape(key, [key.size(0), key.size(1), self.num_heads, self.per_head_size])
+        query = torch.reshape(query, [query.size(0), query.size(1), self.num_heads, self.per_head_size])
+        value = torch.reshape(value, [value.size(0), value.size(1), self.num_heads, self.per_head_size])
 
         key = key.transpose(1, 2)
         query = query.transpose(1, 2)

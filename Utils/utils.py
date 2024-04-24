@@ -89,14 +89,29 @@ class RadicalVocab():
         return radical_vocab
 
 
-def pinyin_split(word):
-    pingyin = pinyin(word, style=Style.TONE3, heteronym=True, strict=False)[0][0]
-    initial = to_initials(pingyin, strict=False)
-    final = to_finals(pingyin)
+def pinyin_split(pinyin):
+    initial = to_initials(pinyin, strict=False)
+    final = to_finals(pinyin)
     initial = initial if initial != '' else '-'  # 有些字没有声母，比如“啊”， 或者 无法被分解为拼音
     final = final if final != '' else '-'  # 无法被分解为拼音
-    yindiao = pingyin[-1] if pingyin[-1].isnumeric() else '-'
+    yindiao = pinyin[-1] if pinyin[-1].isnumeric() else '-'
     return [initial, final, yindiao]
+
+
+def connect_chinese_chars(chars):
+    connected_chars = []
+    current_group = []
+    for char in chars:
+        if char.isalpha() and '\u4e00' <= char <= '\u9fff':
+            current_group.append(char)
+        else:
+            if current_group:
+                connected_chars.append(''.join(current_group))
+                current_group = []
+            connected_chars.append(char)
+    if current_group:
+        connected_chars.append(''.join(current_group))
+    return connected_chars
 
 
 class PinyinVocab:
@@ -108,12 +123,24 @@ class PinyinVocab:
 
     def load_pinyin_vocab(self, min_freq: int = 1, include_word_start_end=False) -> Vocabulary:
         vocab = Vocabulary(min_freq=min_freq)
-        vocab_dict = np.load(self.pinyin_vocab_path, allow_pickle=True).item()
-        vocab.from_dataset(DataSet(vocab_dict), field_name='yinjie')
         vocab.add_word_lst(
             ['-', self.char_tokenizer.pad_token, self.char_tokenizer.unk_token, self.char_tokenizer.cls_token,
              self.char_tokenizer.sep_token])
+        vocab_dict = np.load(self.pinyin_vocab_path, allow_pickle=True).item()
+        vocab.from_dataset(DataSet(vocab_dict), field_name='yinjie')
         return vocab
+
+    def sentence2pinyin(self, sentence):
+        sentence = connect_chinese_chars(sentence)
+        res = []
+        for i in sentence:
+            if len(i) > 1 or '\u4e00' <= i <= '\u9fff':
+                pinyins = pinyin(i, style=Style.TONE3, heteronym=False, strict=False)
+                for p in pinyins:
+                    res.append([self.vocab.to_index(j) for j in pinyin_split(p[0])])
+            else:
+                res.append([3] * 3)
+        return np.array(res)
 
 
 def get_logger(dataset):
@@ -149,7 +176,7 @@ def convert_text_to_index(text):
     return index, int(type)
 
 
-def decode(outputs, entities, length):
+def decode(outputs, entities, length, confusion_matrix):
     class Node:
         def __init__(self):
             self.THW = []  # [(tail, type)]
@@ -194,6 +221,13 @@ def decode(outputs, entities, length):
 
         predicts = set([convert_index_to_text(x[0], x[1]) for x in predicts])
         decode_entities.append([convert_text_to_index(x) for x in predicts])
+        for label in ent_set:
+            confusion_matrix[int(label.split('-')[-1])]['r'] += 1
+        for label in predicts:
+            confusion_matrix[int(label.split('-')[-1])]['p'] += 1
+        for label in predicts.intersection(ent_set):
+            confusion_matrix[int(label.split('-')[-1])]['c'] += 1
+
         ent_r += len(ent_set)
         ent_p += len(predicts)
         ent_c += len(predicts.intersection(ent_set))
@@ -211,3 +245,20 @@ def cal_f1(c, p, r):
         return 2 * p * r / (p + r), p, r
     return 0, p, r
 
+
+def get_confusion_matrix(id2label):
+    confusion_matrix = {}
+    for key in id2label.keys():
+        if key <= 1:
+            continue
+        confusion_matrix[key] = {'r': 0, 'p': 0, 'c': 0}
+    return confusion_matrix
+
+
+if __name__ == "__main__":
+    tokenizer = AutoTokenizer.from_pretrained('D:\\多模态任务\\MMW2NER\\model\\bert-base-chinese')
+    pinyin_vocab = PinyinVocab(tokenizer)
+    input = ('中国人民银行，声调，ae4sd我我我')
+    output = pinyin_vocab.sentence2pinyin(input)
+    print(output)
+    print(len(input), len(output))

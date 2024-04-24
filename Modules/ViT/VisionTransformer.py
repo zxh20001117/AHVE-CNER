@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from Modules.ViT.PatchEmbedding import PatchEmbedding
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class VisionTransformer(nn.Module):
@@ -10,7 +11,7 @@ class VisionTransformer(nn.Module):
         self.patch_dim = patch_dim
         self.max_num_token = max_num_token
         self.patch_embedder = PatchEmbedding(patch_size, patch_dim, max_num_token)
-        self.positional_embedding = torch.randn(self.max_num_token, self.patch_dim, requires_grad=True)
+        self.positional_embedding = torch.randn(self.max_num_token, self.patch_dim, requires_grad=True).to(DEVICE)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.patch_dim, nhead=num_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
 

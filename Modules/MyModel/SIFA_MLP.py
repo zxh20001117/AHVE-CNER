@@ -7,7 +7,7 @@ class SIFA_MLP(nn.Module):
         super().__init__()
         self.linear1 = nn.Linear(emb_size, 2*emb_size)
         self.linear2 = nn.Linear(2*emb_size, emb_size)
-        self.activations = [nn.ReLU(), nn.LeakyReLU(), nn.ELU(), nn.GELU()]
+        self.activations = [nn.ReLU(), nn.Sigmoid(), nn.Tanh(), nn.LogSigmoid()]
 
     def forward(self, x):
         x = self.linear1(x)

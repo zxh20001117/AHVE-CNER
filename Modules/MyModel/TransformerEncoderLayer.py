@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from Modules.LayerProcess import LayerProcess
 from Modules.PositionWiseFeedForward import PositionWiseFeedForward
@@ -23,7 +24,7 @@ class TransformerEncoderLayer(nn.Module):
 
         self.layer_postprocess = LayerProcess(self.layer_postprocess_sequence, self.hidden_size, self.dropout['post'],
                                               )
-        self.layer_postprocess1 = LayerProcess(self.layer_postprocess_sequence,self.hidden_size, self.dropout['post'],
+        self.layer_postprocess1 = LayerProcess(self.layer_postprocess_sequence, self.hidden_size, self.dropout['post'],
                                                )
 
         self.attn = MultiHeadAttention(self.hidden_size, self.num_heads,
@@ -36,10 +37,12 @@ class TransformerEncoderLayer(nn.Module):
                                           )
 
     def forward(self, query, key, value):
-
         output = self.attn(query, key, value)
+        assert not torch.isnan(output).any()
         res = self.layer_postprocess(query, output)
+        assert not torch.isnan(res).any()
         output = self.ff(res)
-        output = self.layer_postprocess1(res, output)
 
+        output = self.layer_postprocess1(res, output)
+        assert not torch.isnan(output).any()
         return output

@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -20,12 +21,15 @@ class LayerProcess(nn.Module):
 
     def forward(self, res, inp):
         output = inp
+        # print(res.shape, inp.shape, self.hidden_size)
         for op in self.process_sequence:
             if op == 'a':
                 output = res + inp
+                assert not torch.isnan(output).any()
             if op == 'd':
                 output = self.dropout(output)
             if op == 'n':
                 output = self.layer_norm(output)
+                assert not torch.isnan(output).any()
 
         return output

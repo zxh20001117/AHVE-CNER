@@ -2,9 +2,11 @@ import json
 
 import torch
 from torch.utils.data import DataLoader
+from transformers import AutoTokenizer
 
-from Modules.W2NER.Model import Model
+from Modules.Model import Model
 from Utils import utils, MyDataset
+from Utils.paths import bert_path
 from Utils.train import Trainer
 
 config = json.load(
@@ -28,7 +30,7 @@ config['logger'] = logger
 logger.info("Loading Data")
 datasets, ori_data = MyDataset.load_data_bert(config)
 
-train_loader, test_loader = (
+train_loader, test_loader, dev_loader = (
     DataLoader(dataset=dataset,
                batch_size=config['batch_size'],
                collate_fn=MyDataset.collate_fn,
@@ -41,9 +43,11 @@ train_loader, test_loader = (
 updates_total = len(datasets[0]) // config['batch_size'] * config['epochs']
 
 logger.info("Building Model")
-model = Model(config)
 
-model = model.cuda()
+tokenizer = AutoTokenizer.from_pretrained(bert_path)
+model = Model(config, tokenizer)
+
+model = model.to(DEVICE)
 
 trainer = Trainer(model, config, updates_total, logger)
 
@@ -52,7 +56,8 @@ best_test_f1 = 0
 for i in range(config['epochs']):
     logger.info("Epoch: {}".format(i))
     trainer.train(i, train_loader)
-    f1 = trainer.eval(i, test_loader)
+    # f1 = trainer.eval(i, test_loader)
+    f1 = trainer.eval(i, dev_loader)
     test_f1 = trainer.eval(i, test_loader, is_test=True)
     if f1 > best_f1:
         best_f1 = f1

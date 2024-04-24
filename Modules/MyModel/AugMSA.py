@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class AugMSA(nn.Module):
@@ -7,7 +8,7 @@ class AugMSA(nn.Module):
         super().__init__()
         self.emb_size = emb_size
         self.AugMSA_nums = AugMSA_nums
-        self.AugMSA_mat = nn.Parameter(torch.randn(AugMSA_nums, emb_size, emb_size), requires_grad=True)
+        self.AugMSA_mat = nn.Parameter(torch.randn(AugMSA_nums, emb_size, emb_size), requires_grad=True).to(DEVICE)
         self.multi_head_attention = nn.MultiheadAttention(emb_size, 8)
         self.activation = nn.GELU()
 
@@ -25,8 +26,8 @@ if __name__ == "__main__":
     seq_len = 10
     emb_size = 768
     AugMSA_nums = 8
-    query = torch.randn(batch_size, seq_len, emb_size)
-    key = torch.randn(batch_size, seq_len, emb_size)
-    AugMSA = AugMSA(emb_size, AugMSA_nums)
+    query = torch.randn(batch_size, seq_len, emb_size).to(DEVICE)
+    key = torch.randn(batch_size, seq_len, emb_size).to(DEVICE)
+    AugMSA = AugMSA(emb_size, AugMSA_nums).to(DEVICE)
     output = AugMSA(query, key, key)
     print(output.shape)

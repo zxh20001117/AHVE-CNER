@@ -4,8 +4,8 @@ import torch.nn as nn
 from Modules.MyModel.PanGuTransformerEncoderLayer import PanGuTransformerEncoderLayer
 
 
-class PanGuTransformer(nn.Module):
-    def __init__(self, emb_size=1024, AugMSA_nums=8, dropout=0.15):
+class PanGuTransformerEncoder(nn.Module):
+    def __init__(self, emb_size=768, AugMSA_nums=8, dropout=0.15):
         super().__init__()
         self.emb_size = emb_size
         self.AugMSA_nums = AugMSA_nums
