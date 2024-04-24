@@ -1,6 +1,6 @@
 {
-  "dataset": "liezhuan diji",
-  "root_path": "D:/多模态任务/MMW2NER/",
+  "dataset": "weibo",
+  "root_path": "D:/多模态任务/AHVE-CNER/",
   "batch_size": 4,
   "epochs": 50,
   "predict_path": "output.json",
