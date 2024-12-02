@@ -61,24 +61,24 @@ class Model(nn.Module):
         self.radical_num_layers = config['radical']['num_layers']
         self.font_size = config['vit']['font_size']
 
-        # self.pinyin_vocab = config['pinyin_vocab']
-        # self.radical_encoder = RadicalEncoder(patch_size=self.patch_size, patch_dim=self.patch_dim,
-        #                                       radical_dim=self.radical_dim, feature_dim= self.feature_dim,
-        #                                       dropout=self.dropouts,
-        #                                       layer_preprocess_sequence=self.layer_preprocess_sequence,
-        #                                       layer_postprocess_sequence=self.layer_postprocess_sequence,
-        #                                       ff_size=self.ff_size,
-        #                                       vit_max_num_token=self.vit_max_num_token,
-        #                                       vit_num_heads=self.vit_num_heads,
-        #                                       vit_num_layers=self.vit_num_layers,
-        #                                       radical_num_heads=self.radical_num_heads,
-        #                                       radical_num_layers=self.radical_num_layers, tokenizer=tokenizer)
-        #
-        # self.pinyin_encoder = CNNPinyinLevelEmbedding(self.pinyin_vocab, self.feature_dim, )
-        #
-        # self.pangu_encoder_pinyin = PanGuTransformerEncoder(emb_size=self.feature_dim)
-        # self.pangu_encoder_radical = PanGuTransformerEncoder(emb_size=self.feature_dim)
-        # self.GMU = GatedMultimodalLayer(emb_size=self.feature_dim)
+        self.pinyin_vocab = config['pinyin_vocab']
+        self.radical_encoder = RadicalEncoder(patch_size=self.patch_size, patch_dim=self.patch_dim,
+                                              radical_dim=self.radical_dim, feature_dim= self.feature_dim,
+                                              dropout=self.dropouts,
+                                              layer_preprocess_sequence=self.layer_preprocess_sequence,
+                                              layer_postprocess_sequence=self.layer_postprocess_sequence,
+                                              ff_size=self.ff_size,
+                                              vit_max_num_token=self.vit_max_num_token,
+                                              vit_num_heads=self.vit_num_heads,
+                                              vit_num_layers=self.vit_num_layers,
+                                              radical_num_heads=self.radical_num_heads,
+                                              radical_num_layers=self.radical_num_layers, tokenizer=tokenizer)
+        
+        self.pinyin_encoder = CNNPinyinLevelEmbedding(self.pinyin_vocab, self.feature_dim, )
+        
+        self.pangu_encoder_pinyin = PanGuTransformerEncoder(emb_size=self.feature_dim)
+        self.pangu_encoder_radical = PanGuTransformerEncoder(emb_size=self.feature_dim)
+        self.GMU = GatedMultimodalLayer(emb_size=self.feature_dim)
 
     def forward(self, bert_inputs, img_inputs, pinyin_inputs, grid_mask2d, dist_inputs, pieces2word, sent_length):
         """
@@ -97,21 +97,13 @@ class Model(nn.Module):
         else:
             bert_embs = bert_embs[0]
 
-        # radical_embs = self.radical_encoder(bert_inputs, img_inputs)
-        # # assert not torch.isnan(radical_embs).any()
-        # # radical_embs = torch.randn(bert_embs.shape).cuda()
-        # pinyin_embs = self.pinyin_encoder(pinyin_inputs)
-        # # print(torch.isnan(pinyin_embs).any())
-        # # assert not torch.isnan(pinyin_embs).any()
-        # radical_embs = self.pangu_encoder_radical(bert_embs, radical_embs, radical_embs)
-        # # assert not torch.isnan(radical_embs).any()
-        # pinyin_embs = self.pangu_encoder_pinyin(bert_embs, pinyin_embs, pinyin_embs)
-        # # assert not torch.isnan(pinyin_embs).any()
-        #
-        # fusion_embs = self.GMU(bert_embs, radical_embs, pinyin_embs)
-        # # assert not torch.isnan(fusion_embs).any()
+        radical_embs = self.radical_encoder(bert_inputs, img_inputs)
+        pinyin_embs = self.pinyin_encoder(pinyin_inputs)
+        radical_embs = self.pangu_encoder_radical(bert_embs, radical_embs, radical_embs)
+        pinyin_embs = self.pangu_encoder_pinyin(bert_embs, pinyin_embs, pinyin_embs)
+        
+        fusion_embs = self.GMU(bert_embs, radical_embs, pinyin_embs)
 
-        fusion_embs = bert_embs
         length = pieces2word.size(1)
 
         min_value = torch.min(fusion_embs).item()
