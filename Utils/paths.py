@@ -1,4 +1,3 @@
-# root_path = "D:/多模态任务/AHVE-CNER/"
 root_path = "/root/autodl-tmp/AHVE-CNER/"
 pinyin_vocab_path = "data/pingyin_vocab.npy"
 radical_vocab_path = "data/chaizi-jt.txt"
