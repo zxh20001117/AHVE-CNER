@@ -256,9 +256,4 @@ def get_confusion_matrix(id2label):
 
 
 if __name__ == "__main__":
-    tokenizer = AutoTokenizer.from_pretrained('D:\\多模态任务\\MMW2NER\\model\\bert-base-chinese')
-    pinyin_vocab = PinyinVocab(tokenizer)
-    input = ('中国人民银行，声调，ae4sd我我我')
-    output = pinyin_vocab.sentence2pinyin(input)
-    print(output)
-    print(len(input), len(output))
+    pass
