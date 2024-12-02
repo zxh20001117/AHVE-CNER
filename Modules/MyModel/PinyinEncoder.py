@@ -48,25 +48,7 @@ class CNNPinyinLevelEmbedding(nn.Module):
         self.pinyin_pad_index = self.pinyin_vocab.vocab.padding_idx
         self.pinyin_unk_index = self.pinyin_vocab.vocab.unknown_idx
         logger.info(f"In total, there are {len(self.pinyin_vocab.vocab)} distinct pinyin characters.")
-        # 对vocab进行index
-        # max_pinyin_nums = 3
-        #
-        # self.register_buffer('word_to_pinyin_embedding', torch.full((len(tokenizer.vocab.items()), max_pinyin_nums),
-        #                                                             fill_value=self.pinyin_pad_index, dtype=torch.long))
-        # self.word_to_pinyin_embedding = torch.full((len(tokenizer.vocab.items()), max_pinyin_nums),
-        #                                            fill_value=self.pinyin_pad_index,
-        #                                            dtype=torch.long)
-        # self.word_lengths = torch.zeros(len(tokenizer.vocab.items())).long()
-        #
-        # for word, index in self.pinyin_vocab.char_tokenizer.vocab.items():
-        #     # if index!=vocab.padding_idx:  # 如果是pad的话，直接就为pad_value了。修改为不区分pad, 这样所有的<pad>也是同一个embed
-        #     pingyin = pinyin_split(word)  # 一个词的拼音
-        #     if word in [tokenizer.unk_token, tokenizer.cls_token, tokenizer.sep_token, tokenizer.pad_token]:
-        #         pingyin[0] = word
-        #     self.word_to_pinyin_embedding[index, :3] = \
-        #         torch.LongTensor([self.pinyin_vocab.vocab.to_index(p) for p in pingyin])
-        #     self.word_lengths[index] = len(word)
-        # self.char_embedding = nn.Embedding(len(self.char_vocab), char_emb_size)
+    
         self.pinyin_embedding = get_embeddings((len(self.pinyin_vocab.vocab), char_emb_size))
         self.pinyin_embedding.weight.requires_grad = True
 
