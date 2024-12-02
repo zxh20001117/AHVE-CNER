@@ -19,10 +19,10 @@ class Trainer(object):
         self.config = config
         self.device = config['device']
         bert_params = set(self.model.bert.parameters())
-        # pinyin_embedding_params = set(self.model.pinyin_encoder.pinyin_embedding.parameters())
-        # radical_embedding_params = set(self.model.radical_encoder.radical_embedder.char_embedding.parameters())
-        pinyin_embedding_params = set()
-        radical_embedding_params = set()
+        pinyin_embedding_params = set(self.model.pinyin_encoder.pinyin_embedding.parameters())
+        radical_embedding_params = set(self.model.radical_encoder.radical_embedder.char_embedding.parameters())
+        # pinyin_embedding_params = set()
+        # radical_embedding_params = set()
         embedding_params = list(pinyin_embedding_params.union(radical_embedding_params))
         other_params = list(set(self.model.parameters()) - bert_params - pinyin_embedding_params - radical_embedding_params)
         no_decay = ['bias', 'LayerNorm.weight']
